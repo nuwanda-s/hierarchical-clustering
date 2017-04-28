@@ -4,5 +4,5 @@
 
 k = number of clusters
 
-#Serial code:
+**Serial code:**
 python hclust.py dataset k
