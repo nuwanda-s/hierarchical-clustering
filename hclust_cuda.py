@@ -39,6 +39,7 @@ class Hierarchical_Clustering:
         self.clusters = []
         self.gold_standard = {}
         self.dendrogram = []
+        self.datapointslist = []
 
     def initialize(self):
         """
@@ -49,7 +50,7 @@ class Hierarchical_Clustering:
         if not os.path.isfile(self.input_file_name):
             self.quit("Input file doesn't exist or it's not a file")
 
-        self.dataset, self.clusters, self.gold_standard = self.load_data(self.input_file_name)
+        self.dataset, self.clusters, self.gold_standard, self.datapointslist = self.load_data(self.input_file_name)
         self.dataset_size = len(self.dataset)
 
         if self.dataset_size == 0:
@@ -110,19 +111,19 @@ class Hierarchical_Clustering:
         dataset_size = len(dataset)
         a = []
         b = []
-        for i in range(dataset_size-1):    # ignore last i
-            for j in range(i+1, dataset_size):     # ignore duplication
-                # dist = self.euclidean_distance(dataset[i]["data"], dataset[j]["data"])
-                a.append(dataset[i]["data"])
-                b.append(dataset[j]["data"])
-                # duplicate dist, need to be remove, and there is no difference to use tuple only
-                # leave second dist here is to take up a position for tie selection
-                # result.append( (dist, [dist, [[i], [j]]]) )
-        print "A: "
+        # for i in range(dataset_size-1):    # ignore last i
+        #     for j in range(i+1, dataset_size):     # ignore duplication
+        #         # dist = self.euclidean_distance(dataset[i]["data"], dataset[j]["data"])
+        #         a.append(dataset[i]["data"])
+        #         b.append(dataset[j]["data"])
+        #         # duplicate dist, need to be remove, and there is no difference to use tuple only
+        #         # leave second dist here is to take up a position for tie selection
+        #         # result.append( (dist, [dist, [[i], [j]]]) )
+        # print "A: "
         # print a
 
-        a = numpy.array(a).astype(numpy.float32)
-        b = numpy.array(b).astype(numpy.float32)
+        a = numpy.array(self.datapointslist[:-1]).astype(numpy.float32)
+        b = numpy.array(self.datapointslist[1:]).astype(numpy.float32)
 
         a_gpu = cuda.mem_alloc(a.nbytes)
         b_gpu = cuda.mem_alloc(b.nbytes)
@@ -130,11 +131,13 @@ class Hierarchical_Clustering:
         cuda.memcpy_htod(a_gpu, a)
         cuda.memcpy_htod(b_gpu, b)
 
+        print "Length of a:"
+        print len(a)
         dist = numpy.zeros((len(a), 1)).astype(numpy.float32)
         dist_gpu = cuda.mem_alloc(dist.nbytes)
 
         func = self.mod.get_function("euclidean_dist")
-        func(dist_gpu, a_gpu, b_gpu, block=(1024, 1, 1), grid=(len(a)/1000,1,1))
+        func(dist_gpu, a_gpu, b_gpu, block=(1000, 1, 1), grid=(len(a)/1000,1,1))
 
         cuda.memcpy_dtoh(dist, dist_gpu)
         # print a
@@ -284,6 +287,7 @@ class Hierarchical_Clustering:
         """
         input_file = open(input_file_name, 'rU')
         dataset = []
+        datapointslist = []
         clusters = {}
         gold_standard = {}
         id = 0
@@ -308,7 +312,8 @@ class Hierarchical_Clustering:
             gold_standard[iris_class].append(id)
 
             id += 1
-        return dataset, clusters, gold_standard
+            datapointslist.append(data["data"])
+        return dataset, clusters, gold_standard, datapointslist
 
     def quit(self, err_desc):
         raise SystemExit('\n'+ "PROGRAM EXIT: " + err_desc + ', please check your input' + '\n')
@@ -413,7 +418,3 @@ if __name__ == '__main__':
     # data = [[1,4,5], [3,6,1], [5,6,10], [7,2,11], [9,6,1], [2,1,5], [4,2,1], [6,6,5], [8,7,1], [0,1,0]]
     # heapq.heapify(data)
     # print data
-
-
-
-
