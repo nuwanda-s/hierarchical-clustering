@@ -1,8 +1,8 @@
-datasets:
-iris.dat - Iris dataset
-newglove.50d10k.dat - GLOVE trimmmed, 10k words, 50 features each
+#Datasets:
+1. iris.dat - Iris dataset
+2. newglove.50d10k.dat - GLOVE trimmmed, 10k words, 50 features each
 
-k = number of clusters to stop at
+k = number of clusters
 
-Serial code:
+#Serial code:
 python hclust.py dataset k
